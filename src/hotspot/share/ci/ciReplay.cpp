@@ -1627,3 +1627,52 @@ oop ciReplay::obj_field(oop obj, const char *name) {
   }
   return obj_field(obj, fname);
 }
+
+int ciReplay::inject_profiles_impl(TRAPS) {
+  HandleMark hm(THREAD);
+  ResourceMark rm(THREAD);
+
+  // Save original ReplaySuppressInitializers value
+  intx original_suppress_initializers = ReplaySuppressInitializers;
+  
+  // For profile injection, we want to suppress ALL static field restoration
+  // We only care about profiling data (MDOs, counters), not static application state.
+  ReplaySuppressInitializers = 0;
+
+  if (FLAG_IS_DEFAULT(ReplayDataFile)) {
+    tty->print_cr("ERROR: no compiler replay data file specified (use -XX:ReplayDataFile=replay_pid12345.txt).");
+    // Restore original value before returning
+    ReplaySuppressInitializers = original_suppress_initializers;
+    return 1;
+  }
+
+  // Load and parse the replay data
+  CompileReplay rp(ReplayDataFile, THREAD);
+  int exit_code = 0;
+  if (rp.can_replay()) {
+    rp.process(THREAD);
+  } else {
+    exit_code = 1;
+    // Restore original value before returning
+    ReplaySuppressInitializers = original_suppress_initializers;
+    return exit_code;
+  }
+
+  if (HAS_PENDING_EXCEPTION) {
+    Handle throwable(THREAD, PENDING_EXCEPTION);
+    CLEAR_PENDING_EXCEPTION;
+    java_lang_Throwable::print_stack_trace(throwable, tty);
+    tty->cr();
+    exit_code = 2;
+  }
+
+  if (rp.had_error()) {
+    tty->print_cr("Failed on %s", rp.error_message());
+    exit_code = 1;
+  }
+  
+  // Restore original ReplaySuppressInitializers value
+  ReplaySuppressInitializers = original_suppress_initializers;
+  
+  return exit_code;
+}

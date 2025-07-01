@@ -106,6 +106,8 @@ class ciReplay {
   // Replay specified compilation and exit VM.
   static void replay(TRAPS);
   static bool no_replay_state();
+  // Inject profiles from replay file and continue execution (no VM exit).
+  static int inject_profiles_impl(TRAPS);
   // Load inlining decisions from file and use them
   // during compilation of specified method.
   static void* load_inline_data(ciMethod* method, int entry_bci, int comp_level);

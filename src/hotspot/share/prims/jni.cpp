@@ -102,6 +102,9 @@
 #include "jfr/jfr.hpp"
 #endif
 
+#include "services/profileInjection.hpp"
+#include "services/profileInjection_globals.hpp"
+
 static jint CurrentVersion = JNI_VERSION_21;
 
 #if defined(_WIN32) && !defined(USE_VECTORED_EXCEPTION_HANDLING)
@@ -3614,6 +3617,8 @@ static jint JNI_CreateJavaVM_inner(JavaVM **vm, void **penv, void *args) {
     JFR_ONLY(Jfr::on_thread_start(thread);)
 
     if (ReplayCompiles) ciReplay::replay(thread);
+
+    if (InjectProfiles) ProfileInjection::inject_profiles(thread);
 
 #ifdef ASSERT
     // Some platforms (like Win*) need a wrapper around these test
