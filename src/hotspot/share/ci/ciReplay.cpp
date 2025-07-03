@@ -1671,6 +1671,11 @@ int ciReplay::inject_profiles_impl(TRAPS) {
     exit_code = 1;
   }
   
+  // Clear replay_state to prevent ongoing overhead
+  // After profile injection, we don't want every compilation
+  // to keep checking stale replay data
+  replay_state = nullptr;
+  
   // Restore original ReplaySuppressInitializers value
   ReplaySuppressInitializers = original_suppress_initializers;
   
